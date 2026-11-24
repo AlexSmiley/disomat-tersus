@@ -1,5 +1,12 @@
 # DISOMAT Tersus — industrial TCP/IP weighing client
 
+## Windows Forms interface
+
+![Windows Forms measurement interface preview](docs/windows-forms-preview.svg)
+
+*Illustrative rendering of the implemented desktop layout with sample measurements; not a screenshot captured from a running Windows application.*
+
+
 Refactored C#/.NET 10 application based on three legacy Windows Forms weighing clients. Includes a Windows desktop UI, a reusable core, raw TCP terminal connection, ODBC updates, file-triggered automatic measurement, and a **synthetic** test terminal.
 
 ## Important safety and validation notices
