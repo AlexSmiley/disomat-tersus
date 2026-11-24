@@ -20,31 +20,38 @@ public sealed class WeighingService(IWeightTerminal terminal, IWeightRepository 
     public async Task<MeasurementResult> MeasureAsync(int count, TimeSpan pause,
         CancellationToken cancellationToken, MeasurementMode mode = MeasurementMode.Rounded)
     {
+        await _gate.WaitAsync(cancellationToken);
+        try { return await CollectAsync(count, pause, cancellationToken, mode); }
+        finally { _gate.Release(); }
+    }
+
+    private async Task<MeasurementResult> CollectAsync(int count, TimeSpan pause,
+        CancellationToken cancellationToken, MeasurementMode mode)
+    {
         if (count is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(count));
         if (pause < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(pause));
-        await _gate.WaitAsync(cancellationToken);
-        try
+        var readings = new List<decimal>(count);
+        await using var session = await terminal.OpenSessionAsync(cancellationToken);
+        for (int i = 0; i < count; i++)
         {
-            var readings = new List<decimal>(count);
-            // All samples use the SAME TCP connection, as in the historical applications.
-            await using var session = await terminal.OpenSessionAsync(cancellationToken);
-            for (int i = 0; i < count; i++)
-            {
-                readings.Add(await session.ReadWeightAsync(cancellationToken));
-                if (i + 1 < count && pause > TimeSpan.Zero)
-                    await Task.Delay(pause, cancellationToken);
-            }
-            return WeightCalculator.Calculate(readings, mode);
+            readings.Add(await session.ReadWeightAsync(cancellationToken));
+            if (i + 1 < count && pause > TimeSpan.Zero)
+                await Task.Delay(pause, cancellationToken);
         }
-        finally { _gate.Release(); }
+        return WeightCalculator.Calculate(readings, mode);
     }
 
     public async Task<MeasurementResult> MeasureAndSaveAsync(int count, TimeSpan pause,
         int scaleNumber, CancellationToken cancellationToken)
     {
-        var result = await MeasureAsync(count, pause, cancellationToken);
-        if (!await repository.SaveAsync(scaleNumber, result.Tonnes, cancellationToken))
-            throw new IOException("Database row was not updated; leave the trigger pending.");
-        return result;
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var result = await CollectAsync(count, pause, cancellationToken, MeasurementMode.Rounded);
+            if (!await repository.SaveAsync(scaleNumber, result.Tonnes, cancellationToken))
+                throw new IOException("Database row was not updated; leave the trigger pending.");
+            return result;
+        }
+        finally { _gate.Release(); }
     }
 }
