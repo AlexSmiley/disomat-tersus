@@ -79,7 +79,7 @@ public sealed class TcpWeightTerminal(TerminalSettings settings) : IWeightTermin
             }
         }
 
-        private int FindFieldEnd()
+        private int FindFrameEnd()
         {
             for (int i = 0; i <= _pending.Count - _terminator.Length; i++)
             {
