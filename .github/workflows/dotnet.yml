@@ -1,0 +1,19 @@
+name: .NET CI
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Test core and infrastructure
+        run: dotnet test tests/Disomat.UnitTests/Disomat.UnitTests.csproj --configuration Release
+      - name: Build desktop application
+        run: dotnet build src/Disomat.WinForms/Disomat.WinForms.csproj --configuration Release
+      - name: Simulator smoke tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
