@@ -102,3 +102,7 @@ simulator/                    synthetic Python TCP terminal
 ## Next steps
 
 Capture complete request/response hex dumps from a test terminal, validate real framing and CRC/status, make file-to-database processing idempotent, and add hardware-in-the-loop tests. No claims of verified hardware compatibility are made.
+
+## Refactored desktop configuration and framing
+
+The desktop app supports cancellation and mutually exclusive manual/automatic operations. Environment variables: `DISOMAT_SAMPLES` (10), `DISOMAT_RAW_SAMPLES` (7), `DISOMAT_DELAY_MS` (0), `DISOMAT_TIMEOUT_MS` (5000), `DISOMAT_SCALE` (1), `DISOMAT_REQUEST_HEX`, `DISOMAT_DELIMITER_HEX` (23), `DISOMAT_WEIGHT_FIELD` (4), and `DISOMAT_RESPONSE_TERMINATOR_HEX` (454E44, synthetic END marker). The TCP decoder now consumes through the configured terminator, including trailer bytes. The default is only for the simulator; verify actual hardware framing and status before deployment. A loopback integration test covers consecutive fragmented frames with trailer delimiters.
